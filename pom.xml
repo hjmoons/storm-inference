@@ -71,7 +71,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
@@ -82,7 +81,11 @@
       <artifactId>commons-logging</artifactId>
       <version>1.2</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.springframework.kafka</groupId>
+      <artifactId>spring-kafka</artifactId>
+      <version>2.2.0.RELEASE</version>
+    </dependency>
   </dependencies>
 
   <build>
