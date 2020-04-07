@@ -38,6 +38,14 @@ public class InferenceTopology {
         inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
     }
 
+    /**
+     * Set the topology to be executed
+     * @param topologyName name to represent topology
+     * @param inputTopic topic to pull input data
+     * @param outputTopic topic to push output data
+     * @param zkhosts zookeeper host to use kafka
+     * @param bootstrap broker list to use kafka
+     */
     public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap) {
         KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
         PreparingBolt preparingBolt = new PreparingBolt();

@@ -31,14 +31,17 @@ public class InferenceBolt extends BaseRichBolt {
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
 
+        /* Load saved model from resources folder */
         ClassPathResource resource = new ClassPathResource("models/cnn/saved_model.pb");
 
+        /* Save model to local */
         try {
             File modelFile = new File("./saved_model.pb");
             IOUtils.copy(resource.getInputStream(), new FileOutputStream(modelFile));
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         savedModelBundle = SavedModelBundle.load("./", "serve");
         sess = savedModelBundle.session();
     }
