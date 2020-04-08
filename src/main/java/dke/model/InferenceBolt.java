@@ -55,8 +55,8 @@ public class InferenceBolt extends BaseRichBolt {
 
         // Running session and get output tensor
         Tensor result = sess.runner()
-                .feed("input_1:0", x)
-                .fetch("output_1/Sigmoid:0")
+                .feed("input:0", x)
+                .fetch("output/Softmax:0")
                 .run()
                 .get(0);
 
