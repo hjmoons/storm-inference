@@ -23,7 +23,6 @@ public class InferenceTopology {
 
     private final int NUM_WORKERS = 8;
     private final int KAFKA_SPOUT_PARAL = 1;
-    private final int PREPARING_BOLT_PARAL = 2;
     private final int INFERENCE_BOLT_PARAL = 4;
     private final int KAFKA_BOLT_PARAL = 1;
 
@@ -35,10 +34,9 @@ public class InferenceTopology {
         String outputTopic = args[2];
         String zkHosts = "MN:42181,SN01:42181,SN02:42181,SN03:42181,SN04:42181,SN05:42181,SN06:42181,SN07:42181,SN08:42181";
         String bootstrap = "MN:49092,SN01:49092,SN02:49092,SN03:49092,SN04:49092,SN05:49092,SN06:49092,SN07:49092,SN08:49092";
-        String modelPath = "./mnist";
 
         InferenceTopology inferenceTopology = new InferenceTopology();
-        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap, modelPath);
+        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
     }
 
     /**
@@ -49,7 +47,7 @@ public class InferenceTopology {
      * @param zkhosts zookeeper host to use kafka
      * @param bootstrap broker list to use kafka
      */
-    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap, String modelPath) {
+    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap) {
         KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
         InferenceBolt inferenceBolt = new InferenceBolt();
         KafkaBolt kafkabolt = new KafkaBolt().withProducerProperties(kafkaBoltConfig(bootstrap))
