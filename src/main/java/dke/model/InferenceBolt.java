@@ -1,6 +1,5 @@
 package dke.model;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.storm.shade.org.json.simple.JSONObject;
@@ -11,13 +10,10 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import org.springframework.core.io.ClassPathResource;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.Map;
 
 public class InferenceBolt extends BaseRichBolt {
@@ -26,32 +22,22 @@ public class InferenceBolt extends BaseRichBolt {
     private OutputCollector outputCollector;
     private SavedModelBundle savedModelBundle;
     private Session sess;
+    public InferenceBolt() {
+
+    }
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
-
-        /* Load saved model from resources folder */
-        ClassPathResource resource = new ClassPathResource("models/cnn/saved_model.pb");
-
-        /* Save model to local */
-        try {
-            File modelFile = new File("./saved_model.pb");
-            IOUtils.copy(resource.getInputStream(), new FileOutputStream(modelFile));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        savedModelBundle = SavedModelBundle.load("./", "serve");
-        sess = savedModelBundle.session();
+        this.sess = savedModelBundle.session();
     }
 
     @Override
     public void execute(Tuple tuple) {
-        String mnist_img = (String) tuple.getValueByField("img");
+        String input_data = (String) tuple.getValueByField("input");
 
-        //create an input Tensor
-        Tensor x = Tensor.create(mnist_img);
+        //float[][] result = loadedModel.run(input_data);
+        Tensor x = Tensor.create(input_data);
 
         // Running session and get output tensor
         Tensor result = sess.runner()
@@ -61,7 +47,6 @@ public class InferenceBolt extends BaseRichBolt {
                 .get(0);
 
         float[][] prob = (float[][]) result.copyTo(new float[1][1]);
-        LOG.info("Result value: " + prob[0][0]);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("text", tuple.getValueByField("text"));

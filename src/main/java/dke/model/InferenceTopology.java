@@ -13,7 +13,13 @@ import org.apache.storm.thrift.TException;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.Utils;
+import org.tensorflow.SavedModelBundle;
+import org.tensorflow.Session;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Base64;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -27,15 +33,18 @@ public class InferenceTopology {
     private final int INFERENCE_BOLT_PARAL = 4;
     private final int KAFKA_BOLT_PARAL = 1;
 
+    private static final long serialVersionUID = 1L;
+
     public static void main(String[] args) {
         String topologyName = args[0];
         String inputTopic = args[1];
         String outputTopic = args[2];
-        String zkHosts = "MN:2182,SN01:2182,SN02:2182,SN03:2182,SN04:2182,SN05:2182,SN06:2182,SN07:2182,SN08:2182";
+        String zkHosts = "MN:42181,SN01:42181,SN02:42181,SN03:42181,SN04:42181,SN05:42181,SN06:42181,SN07:42181,SN08:42181";
         String bootstrap = "MN:49092,SN01:49092,SN02:49092,SN03:49092,SN04:49092,SN05:49092,SN06:49092,SN07:49092,SN08:49092";
+        String modelPath = "./mnist";
 
         InferenceTopology inferenceTopology = new InferenceTopology();
-        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
+        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap, modelPath);
     }
 
     /**
@@ -46,9 +55,8 @@ public class InferenceTopology {
      * @param zkhosts zookeeper host to use kafka
      * @param bootstrap broker list to use kafka
      */
-    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap) {
+    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap, String modelPath) {
         KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
-        PreparingBolt preparingBolt = new PreparingBolt();
         InferenceBolt inferenceBolt = new InferenceBolt();
         KafkaBolt kafkabolt = new KafkaBolt().withProducerProperties(kafkaBoltConfig(bootstrap))
                 .withTopicSelector(new DefaultTopicSelector(outputTopic))
@@ -57,8 +65,7 @@ public class InferenceTopology {
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
-        builder.setBolt("preparing-bolt", preparingBolt, PREPARING_BOLT_PARAL).shuffleGrouping("kafka-spout");
-        builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("preparing-bolt");
+        builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
         builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("inference-bolt");            // Store Data to Kafka
 
         Config config = new Config();
