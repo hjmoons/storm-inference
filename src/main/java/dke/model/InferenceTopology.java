@@ -13,13 +13,7 @@ import org.apache.storm.thrift.TException;
 import org.apache.storm.topology.TopologyBuilder;
 import org.apache.storm.utils.NimbusClient;
 import org.apache.storm.utils.Utils;
-import org.tensorflow.SavedModelBundle;
-import org.tensorflow.Session;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Base64;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -74,6 +68,8 @@ public class InferenceTopology {
         try {
             StormSubmitter.submitTopology(topologyName, config, builder.createTopology());
 
+            Thread.sleep(3 * 60 * 1000);
+
             Map<String, Object> conf = Utils.readStormConfig();
             Nimbus.Client client = NimbusClient.getConfiguredClient(conf).getClient();
             KillOptions killOpts = new KillOptions();
@@ -89,6 +85,8 @@ public class InferenceTopology {
         } catch (NotAliveException e) {
             LOG.info(e.get_msg());
         } catch (TException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

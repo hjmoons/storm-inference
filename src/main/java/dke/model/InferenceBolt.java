@@ -29,16 +29,16 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
-        this.savedModelBundle = SavedModelBundle.load("./mnist", "serve");
+        this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/mnist", "serve");
         this.sess = savedModelBundle.session();
     }
 
     @Override
     public void execute(Tuple tuple) {
-        String input_data = (String) tuple.getValueByField("input");
-
+        String input = tuple.getString(0);
+        float[][][][] data = getInputData(input);
         //float[][] result = loadedModel.run(input_data);
-        Tensor x = Tensor.create(input_data);
+        Tensor x = Tensor.create(data);
 
         // Running session and get output tensor
         Tensor result = sess.runner()
@@ -47,11 +47,16 @@ public class InferenceBolt extends BaseRichBolt {
                 .run()
                 .get(0);
 
-        float[][] prob = (float[][]) result.copyTo(new float[1][1]);
+        float[][] prob = (float[][]) result.copyTo(new float[1][10]);
+        String value = "[";
+        for(int i = 0; i < 10; i++) {
+            value = value + Float.toString(prob[0][i]);
+            if(i < 9)   value = value + ", ";
+        }
+        value = value + "]";
 
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("text", tuple.getValueByField("text"));
-        jsonObject.put("result", prob[0][0]);
+        jsonObject.put("result", prob.toString());
         jsonObject.put("time", System.currentTimeMillis());
 
         outputCollector.emit(new Values(jsonObject));
@@ -61,5 +66,21 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declare(new Fields("message"));
+    }
+
+    public float[][][][] getInputData(String input) {
+        float[][][][] data = new float[1][28][28][1];
+        String str = input.replaceAll("[\\[\\]]", "");
+        String[] str_split = str.split(",");
+
+        int count = 0;
+        for(int i = 0; i < 28; i++) {
+            for(int j = 0; j < 28; j++) {
+                data[0][i][j][0] = Float.parseFloat(str_split[count]);
+                count++;
+            }
+        }
+
+        return data;
     }
 }
