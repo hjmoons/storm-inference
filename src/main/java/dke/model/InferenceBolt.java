@@ -29,6 +29,7 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
+        this.savedModelBundle = SavedModelBundle.load("./mnist", "serve");
         this.sess = savedModelBundle.session();
     }
 
