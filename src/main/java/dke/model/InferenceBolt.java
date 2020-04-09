@@ -48,15 +48,10 @@ public class InferenceBolt extends BaseRichBolt {
                 .get(0);
 
         float[][] prob = (float[][]) result.copyTo(new float[1][10]);
-        String value = "[";
-        for(int i = 0; i < 10; i++) {
-            value = value + Float.toString(prob[0][i]);
-            if(i < 9)   value = value + ", ";
-        }
-        value = value + "]";
+        String result_value = setOutputData(prob);
 
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("result", prob.toString());
+        jsonObject.put("result", result_value);
         jsonObject.put("time", System.currentTimeMillis());
 
         outputCollector.emit(new Values(jsonObject));
@@ -82,5 +77,16 @@ public class InferenceBolt extends BaseRichBolt {
         }
 
         return data;
+    }
+
+    public String setOutputData(float[][] prob) {
+        String value = "[";
+        for(int i = 0; i < 10; i++) {
+            value = value + Float.toString(prob[0][i]);
+            if(i < 9)   value = value + ", ";
+        }
+        value = value + "]";
+
+        return value;
     }
 }
