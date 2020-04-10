@@ -1,4 +1,4 @@
-package dke.model;
+package dke.model.mnist;
 
 import org.apache.storm.shade.org.json.simple.JSONObject;
 import org.apache.storm.task.OutputCollector;
@@ -14,14 +14,16 @@ import org.tensorflow.Tensor;
 
 import java.util.Map;
 
-public class InferenceBolt extends BaseRichBolt {
+public class MnistBolt extends BaseRichBolt {
     private OutputCollector outputCollector;
     private SavedModelBundle savedModelBundle;
     private Session sess;
+    private DataPreprocessing dataPreprocessing;
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
+        this.dataPreprocessing = new DataPreprocessing();
         this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/mnist", "serve");
         this.sess = savedModelBundle.session();
     }
@@ -29,7 +31,7 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String input = tuple.getString(0);
-        float[][][][] data = getInputData(input);
+        float[][][][] data = dataPreprocessing.getInputData(input);
 
         Tensor x = Tensor.create(data);
 
@@ -41,7 +43,7 @@ public class InferenceBolt extends BaseRichBolt {
                 .get(0);
 
         float[][] prob = (float[][]) result.copyTo(new float[1][10]);
-        String result_value = setOutputData(prob);
+        String result_value = dataPreprocessing.setOutputData(prob);
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("result", result_value);
@@ -54,32 +56,5 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer outputFieldsDeclarer) {
         outputFieldsDeclarer.declare(new Fields("message"));
-    }
-
-    public float[][][][] getInputData(String input) {
-        float[][][][] data = new float[1][28][28][1];
-        String str = input.replaceAll("[\\[\\]]", "");
-        String[] str_split = str.split(",");
-
-        int count = 0;
-        for(int i = 0; i < 28; i++) {
-            for(int j = 0; j < 28; j++) {
-                data[0][i][j][0] = Float.parseFloat(str_split[count]);
-                count++;
-            }
-        }
-
-        return data;
-    }
-
-    public String setOutputData(float[][] prob) {
-        String value = "[";
-        for(int i = 0; i < 10; i++) {
-            value = value + Float.toString(prob[0][i]);
-            if(i < 9)   value = value + ", ";
-        }
-        value = value + "]";
-
-        return value;
     }
 }

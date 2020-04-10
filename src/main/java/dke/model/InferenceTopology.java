@@ -1,5 +1,6 @@
 package dke.model;
 
+import dke.model.mnist.MnistBolt;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.storm.Config;
@@ -32,11 +33,12 @@ public class InferenceTopology {
         String topologyName = args[0];
         String inputTopic = args[1];
         String outputTopic = args[2];
+        String modelName = args[3];
         String zkHosts = "MN:42181,SN01:42181,SN02:42181,SN03:42181,SN04:42181,SN05:42181,SN06:42181,SN07:42181,SN08:42181";
         String bootstrap = "MN:49092,SN01:49092,SN02:49092,SN03:49092,SN04:49092,SN05:49092,SN06:49092,SN07:49092,SN08:49092";
 
         InferenceTopology inferenceTopology = new InferenceTopology();
-        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
+        inferenceTopology.topology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap, modelName);
     }
 
     /**
@@ -47,9 +49,10 @@ public class InferenceTopology {
      * @param zkhosts zookeeper host to use kafka
      * @param bootstrap broker list to use kafka
      */
-    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap) {
+    public void topology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap, String modelName) {
         KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
-        InferenceBolt inferenceBolt = new InferenceBolt();
+        //InferenceBolt inferenceBolt = new InferenceBolt();
+        MnistBolt mnistBolt = new MnistBolt();
         KafkaBolt kafkabolt = new KafkaBolt().withProducerProperties(kafkaBoltConfig(bootstrap))
                 .withTopicSelector(new DefaultTopicSelector(outputTopic))
                 .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
@@ -57,7 +60,8 @@ public class InferenceTopology {
         TopologyBuilder builder = new TopologyBuilder();
 
         builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
-        builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
+        //builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
+        builder.setBolt("mnist-bolt", mnistBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
         builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("inference-bolt");            // Store Data to Kafka
 
         Config config = new Config();
