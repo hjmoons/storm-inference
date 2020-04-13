@@ -62,7 +62,7 @@ public class InferenceTopology {
         builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
         //builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
         builder.setBolt("mnist-bolt", mnistBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
-        builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("inference-bolt");            // Store Data to Kafka
+        builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("mnist-bolt");            // Store Data to Kafka
 
         Config config = new Config();
         config.setNumWorkers(NUM_WORKERS);
@@ -70,7 +70,7 @@ public class InferenceTopology {
         try {
             StormSubmitter.submitTopology(topologyName, config, builder.createTopology());
 
-            Thread.sleep(3 * 60 * 1000);
+            Thread.sleep(60 * 60 * 1000);
 
             Map<String, Object> conf = Utils.readStormConfig();
             Nimbus.Client client = NimbusClient.getConfiguredClient(conf).getClient();
