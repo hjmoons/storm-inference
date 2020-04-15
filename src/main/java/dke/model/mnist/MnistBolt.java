@@ -1,5 +1,7 @@
 package dke.model.mnist;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -7,7 +9,8 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import org.json.simple.JSONObject;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.tensorflow.SavedModelBundle;
@@ -38,17 +41,20 @@ public class MnistBolt extends BaseRichBolt {
         String input = tuple.getString(0);
 
         JSONObject inputJSON = null;
+        String instances = null;
+        Long inputTime = 0L;
+        int number = 0;
+
         try {
-            inputJSON = (JSONObject) jsonParser.parse(input);
-        } catch (ParseException e) {
+            inputJSON = new JSONObject(input);
+            instances = inputJSON.getString("instances");
+            inputTime = inputJSON.getLong("inputTime");
+            number = inputJSON.getInt("number");
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 
-        String input_time = (String) inputJSON.get("time");
-        String input_data = (String) inputJSON.get("data");
-        String input_number = (String) inputJSON.get("number");
-
-        float[][][][] data = dataPreprocessing.getInputData(input_data);
+        float[][][][] data = dataPreprocessing.getInputData(instances);
 
         Tensor x = Tensor.create(data);
 
@@ -60,15 +66,24 @@ public class MnistBolt extends BaseRichBolt {
                 .get(0);
 
         float[][] prob = (float[][]) result.copyTo(new float[1][10]);
-        String result_value = dataPreprocessing.setOutputData(prob);
+        //String result_value = dataPreprocessing.setOutputData(prob);
 
-        JSONObject outputJSon = new JSONObject();
-        outputJSon.put("number", input_number);
-        outputJSon.put("result", result_value);
-        outputJSon.put("inputtime", input_time);
-        outputJSon.put("outputtime", String.valueOf(System.currentTimeMillis()));
+        OutputMnist outputMnist = new OutputMnist();
+        outputMnist.setPredictions(prob);
+        outputMnist.setInputTime(inputTime);
+        outputMnist.setOutputTime(System.currentTimeMillis());
+        outputMnist.setNumber(number);
 
-        outputCollector.emit(new Values(outputJSon));
+        String outputData = null;
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            outputData = objectMapper.writeValueAsString(outputMnist);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        outputCollector.emit(new Values(outputData));
         outputCollector.ack(tuple);
     }
 

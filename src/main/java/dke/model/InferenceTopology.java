@@ -23,7 +23,7 @@ public class InferenceTopology {
     private Log LOG = LogFactory.getLog(InferenceTopology.class);
 
     private final int NUM_WORKERS = 8;
-    private final int KAFKA_SPOUT_PARAL = 1;
+    private final int KAFKA_SPOUT_PARAL = 3;
     private final int INFERENCE_BOLT_PARAL = 4;
     private final int KAFKA_BOLT_PARAL = 1;
 
