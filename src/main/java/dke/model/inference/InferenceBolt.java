@@ -1,7 +1,9 @@
-package dke.model.mnist;
+package dke.model.inference;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dke.model.inference.data.InstObj;
+import dke.model.inference.data.PredObj;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -9,52 +11,43 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
 
+import java.io.IOException;
 import java.util.Map;
 
-public class MnistBolt extends BaseRichBolt {
+public class InferenceBolt extends BaseRichBolt {
     private OutputCollector outputCollector;
     private SavedModelBundle savedModelBundle;
     private Session sess;
-    private DataPreprocessing dataPreprocessing;
 
-    private JSONParser jsonParser;
+    private ObjectMapper objectMapper;
+    private InstObj instObj;
+    private PredObj predObj;
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
-        this.dataPreprocessing = new DataPreprocessing();
-        this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/mnist", "serve");
+        this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/models/mnist/1", "serve");
         this.sess = savedModelBundle.session();
-        this.jsonParser = new JSONParser();
+
+        this.objectMapper = new ObjectMapper();
+        this.predObj = new PredObj();
     }
 
     @Override
     public void execute(Tuple tuple) {
-        String input = tuple.getString(0);
-
-        JSONObject inputJSON = null;
-        String instances = null;
-        Long inputTime = 0L;
-        int number = 0;
+        String inputJson = tuple.getString(0);
 
         try {
-            inputJSON = new JSONObject(input);
-            instances = inputJSON.getString("instances");
-            inputTime = inputJSON.getLong("inputTime");
-            number = inputJSON.getInt("number");
-        } catch (JSONException e) {
+            instObj = objectMapper.readValue(inputJson, InstObj.class);
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
-        float[][][][] data = dataPreprocessing.getInputData(instances);
+        float[][][][] data = instObj.getInstances();
 
         Tensor x = Tensor.create(data);
 
@@ -66,24 +59,19 @@ public class MnistBolt extends BaseRichBolt {
                 .get(0);
 
         float[][] prob = (float[][]) result.copyTo(new float[1][10]);
-        //String result_value = dataPreprocessing.setOutputData(prob);
 
-        OutputMnist outputMnist = new OutputMnist();
-        outputMnist.setPredictions(prob);
-        outputMnist.setInputTime(inputTime);
-        outputMnist.setOutputTime(System.currentTimeMillis());
-        outputMnist.setNumber(number);
+        predObj.setPredictions(prob);
 
-        String outputData = null;
+        String outputJson = null;
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            outputData = objectMapper.writeValueAsString(outputMnist);
+            outputJson = objectMapper.writeValueAsString(predObj);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
 
-        outputCollector.emit(new Values(outputData));
+        outputCollector.emit(new Values(outputJson));
         outputCollector.ack(tuple);
     }
 
