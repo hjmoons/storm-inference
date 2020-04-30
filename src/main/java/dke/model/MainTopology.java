@@ -1,8 +1,5 @@
 package dke.model;
 
-import dke.model.output.KafkaBolt;
-import dke.model.inference.InferenceBolt;
-import dke.model.test.InferTestBolt;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.storm.Config;
@@ -38,15 +35,9 @@ public class MainTopology {
         String topologyName = args[0];
         String inputTopic = args[1];
         String outputTopic = args[2];
-        String exeType = args[3];
-        String modelName = args[4];
 
         MainTopology mainTopology = new MainTopology();
-        if(exeType.equals("main")) {
-            mainTopology.mainTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
-        } else if(exeType.equals("test")) {
-            mainTopology.testTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap, modelName);
-        }
+        mainTopology.mainTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
     }
 
     /**
@@ -69,53 +60,6 @@ public class MainTopology {
         builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
         builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
         builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("cifar-bolt");            // Store Data to Kafka
-
-        Config config = new Config();
-        config.setNumWorkers(NUM_WORKERS);
-
-        try {
-            StormSubmitter.submitTopology(topologyName, config, builder.createTopology());
-
-            Thread.sleep(60 * 60 * 1000);
-
-            Map<String, Object> conf = Utils.readStormConfig();
-            Nimbus.Client client = NimbusClient.getConfiguredClient(conf).getClient();
-            KillOptions killOpts = new KillOptions();
-            killOpts.set_wait_secs(0);
-            client.killTopologyWithOpts(topologyName, killOpts);
-
-        } catch (AlreadyAliveException e) {
-            LOG.info(e.get_msg());
-        } catch (InvalidTopologyException e) {
-            LOG.info(e.get_msg());
-        } catch (AuthorizationException e) {
-            LOG.info(e.get_msg());
-        } catch (NotAliveException e) {
-            LOG.info(e.get_msg());
-        } catch (TException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void testTopology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap, String modelName) {
-        KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
-        KafkaBolt kafkabolt = new KafkaBolt().withProducerProperties(kafkaBoltConfig(bootstrap))
-                .withTopicSelector(new DefaultTopicSelector(outputTopic))
-                .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
-        InferTestBolt inferTestBolt = null;
-        if(modelName.equals("mnist")) {
-            inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/mnist/1", "input:0", "output/Softmax:0");
-        } else if(modelName.equals("cifar10")) {
-            inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/cifar10/1", "conv2d_1_input:0", "activation_6/Softmax:0");
-        }
-
-        TopologyBuilder builder = new TopologyBuilder();
-
-        builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
-        builder.setBolt("infer-test-bolt", inferTestBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
-        builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("infer-test-bolt");            // Store Data to Kafka
 
         Config config = new Config();
         config.setNumWorkers(NUM_WORKERS);

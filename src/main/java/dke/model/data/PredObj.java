@@ -1,4 +1,4 @@
-package dke.model.inference.data;
+package dke.model.data;
 
 public class PredObj {
     private float[][] predictions;

@@ -1,9 +1,9 @@
-package dke.model.test;
+package dke.model;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dke.model.test.data.InputObj;
-import dke.model.test.data.OutputObj;
+import dke.model.data.InstObj;
+import dke.model.data.PredObj;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -18,68 +18,56 @@ import org.tensorflow.Tensor;
 import java.io.IOException;
 import java.util.Map;
 
-public class InferTestBolt extends BaseRichBolt {
+public class InferenceBolt extends BaseRichBolt {
     private OutputCollector outputCollector;
     private SavedModelBundle savedModelBundle;
     private Session sess;
 
-    private String modelPath;
-    private String modelInput;
-    private String modelOutput;
-
     private ObjectMapper objectMapper;
-    private InputObj inputObj;
-    private OutputObj outputObj;
-
-    public InferTestBolt(String modelPath, String modelInput, String modelOutput) {
-        this.modelPath = modelPath;
-        this.modelInput = modelInput;
-        this.modelOutput = modelOutput;
-    }
+    private InstObj instObj;
+    private PredObj predObj;
 
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
-        this.savedModelBundle = SavedModelBundle.load(modelPath, "serve");
+        this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/models/mnist/1", "serve");
         this.sess = savedModelBundle.session();
 
         this.objectMapper = new ObjectMapper();
-        this.outputObj = new OutputObj();
+        this.predObj = new PredObj();
     }
 
     @Override
     public void execute(Tuple tuple) {
         String inputJson = tuple.getString(0);
+
+        try {
+            instObj = objectMapper.readValue(inputJson, InstObj.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        float[][][][] data = instObj.getInstances();
+
+        Tensor x = Tensor.create(data);
+
+        // Running session and get output tensor
+        Tensor result = sess.runner()
+                .feed("input:0", x)
+                .fetch("output/Softmax:0")
+                .run()
+                .get(0);
+
+        float[][] prob = (float[][]) result.copyTo(new float[1][10]);
+
+        predObj.setPredictions(prob);
+
         String outputJson = null;
 
         try {
-            inputObj = objectMapper.readValue(inputJson, InputObj.class);
-
-
-            float[][][][] data = inputObj.getInstances();
-
-            Tensor x = Tensor.create(data);
-
-            // Running session and get output tensor
-            Tensor result = sess.runner()
-                    .feed(modelInput, x)
-                    .fetch(modelOutput)
-                    .run()
-                    .get(0);
-
-            float[][] prob = (float[][]) result.copyTo(new float[1][10]);
-
-            outputObj.setPredictions(prob);
-            outputObj.setInputTime(inputObj.getInputTime());
-            outputObj.setOutputTime(System.currentTimeMillis());
-            outputObj.setNumber(outputObj.getNumber());
-
             ObjectMapper objectMapper = new ObjectMapper();
-            outputJson = objectMapper.writeValueAsString(outputObj);
-
+            outputJson = objectMapper.writeValueAsString(predObj);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
             e.printStackTrace();
         }
 
