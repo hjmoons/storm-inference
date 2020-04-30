@@ -108,7 +108,7 @@ public class MainTopology {
         if(modelName.equals("mnist")) {
             inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/mnist/1", "input:0", "output/Softmax:0");
         } else if(modelName.equals("cifar10")) {
-            inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/cifar10/1", "conv2d_1_input:0", "activation/Softmax:0");
+            inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/cifar10/1", "conv2d_1_input:0", "activation_6/Softmax:0");
         }
 
         TopologyBuilder builder = new TopologyBuilder();
