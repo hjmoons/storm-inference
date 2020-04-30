@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dke.model.data.InstObj;
 import dke.model.data.PredObj;
+import org.apache.commons.io.IOUtils;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -11,10 +12,13 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import org.springframework.core.io.ClassPathResource;
 import org.tensorflow.SavedModelBundle;
 import org.tensorflow.Session;
 import org.tensorflow.Tensor;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
@@ -30,8 +34,18 @@ public class InferenceBolt extends BaseRichBolt {
     @Override
     public void prepare(Map map, TopologyContext topologyContext, OutputCollector outputCollector) {
         this.outputCollector = outputCollector;
-        this.savedModelBundle = SavedModelBundle.load("/home/team1/hyojong/models/mnist/1", "serve");
-        this.sess = savedModelBundle.session();
+
+        ClassPathResource resource = new ClassPathResource("model/saved_model.pb");
+
+        try {
+            File modelFile = new File("./saved_model.pb");
+            IOUtils.copy(resource.getInputStream(), new FileOutputStream(modelFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        this.savedModelBundle = SavedModelBundle.load("./", "serve");
+        sess = savedModelBundle.session();
 
         this.objectMapper = new ObjectMapper();
         this.predObj = new PredObj();
