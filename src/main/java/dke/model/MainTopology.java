@@ -21,6 +21,7 @@ import java.util.UUID;
 public class MainTopology {
     private Log LOG = LogFactory.getLog(MainTopology.class);
 
+    /* parallelism variable */
     private final int NUM_WORKERS = 8;
     private final int KAFKA_SPOUT_PARAL = 2;
     private final int INFERENCE_BOLT_PARAL = 4;
@@ -29,8 +30,8 @@ public class MainTopology {
     private static final long serialVersionUID = 1L;
 
     public static void main(String[] args) {
-        String zkHosts = "MN:42181,SN01:42181,SN02:42181,SN03:42181,SN04:42181,SN05:42181,SN06:42181,SN07:42181,SN08:42181";
-        String bootstrap = "MN:49092,SN01:49092,SN02:49092,SN03:49092,SN04:49092,SN05:49092,SN06:49092,SN07:49092,SN08:49092";
+        String zkHosts = "";
+        String bootstrap = "";
 
         String topologyName = args[0];
         String inputTopic = args[1];
@@ -59,7 +60,7 @@ public class MainTopology {
 
         builder.setSpout("kafka-spout", kafkaSpout, KAFKA_SPOUT_PARAL);
         builder.setBolt("inference-bolt", inferenceBolt, INFERENCE_BOLT_PARAL).shuffleGrouping("kafka-spout");
-        builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("cifar-bolt");            // Store Data to Kafka
+        builder.setBolt("kafka-bolt", kafkabolt, KAFKA_BOLT_PARAL).shuffleGrouping("inference-bolt");            // Store Data to Kafka
 
         Config config = new Config();
         config.setNumWorkers(NUM_WORKERS);
