@@ -33,7 +33,23 @@
 }
 ```
 
-### 실행 방법
+### 실행 방법   
+
+실행하기 전에 MainTopology에 있는 zkhosts와 bootstrap 변수를 본인의 카프카 환경에 맞게 설정한다.
+```java
+public static void main(String[] args) {
+    String zkHosts = "";
+    String bootstrap = "";
+
+    String topologyName = args[0];
+    String inputTopic = args[1];
+    String outputTopic = args[2];
+
+    MainTopology mainTopology = new MainTopology();
+    mainTopology.mainTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
+}
+```
+설정 후 프로젝트를 install 하여 jar파일을 생성한다. 그리고 생성된 jar파일을 실행한다.
 ```
 $ storm jar Inference-Model-based-Storm-1.0-SNAPSHOT-jar-with-dependencies.jar dke.model.MainTopology <TOPOLOGY_NAME> <INPUT_TOPIC> <OUTPUT_TOPIC>
 ```
