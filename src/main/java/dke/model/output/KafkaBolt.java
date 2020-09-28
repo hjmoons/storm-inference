@@ -63,6 +63,7 @@ public class KafkaBolt<K, V> extends BaseTickTupleAwareRichBolt {
 
     /**
      * Set the messages to be published to a single topic
+     *
      * @param topic the topic to publish to
      * @return this
      */
@@ -181,6 +182,7 @@ public class KafkaBolt<K, V> extends BaseTickTupleAwareRichBolt {
      * the tuple as soon as it has handed the message off to the producer API
      * if false (the default) the message will be acked after it was successfully sent to kafka or
      * failed if it was not successfully sent.
+     *
      * @param fireAndForget
      */
     public void setFireAndForget(boolean fireAndForget) {
@@ -190,6 +192,7 @@ public class KafkaBolt<K, V> extends BaseTickTupleAwareRichBolt {
     /**
      * If set to true(the default) the bolt will not wait for the message
      * to be fully sent to Kafka before getting another tuple to send.
+     *
      * @param async true to have multiple tuples in flight to kafka, else false.
      */
     public void setAsync(boolean async) {

@@ -42,20 +42,21 @@ public class MainTopology {
         String modelName = args[4];
 
         MainTopology mainTopology = new MainTopology();
-        if(exeType.equals("main")) {
+        if (exeType.equals("main")) {
             mainTopology.mainTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap);
-        } else if(exeType.equals("test")) {
+        } else if (exeType.equals("test")) {
             mainTopology.testTopology(topologyName, inputTopic, outputTopic, zkHosts, bootstrap, modelName);
         }
     }
 
     /**
      * Set the topology to be executed
+     *
      * @param topologyName name to represent topology
-     * @param inputTopic topic to pull input data
-     * @param outputTopic topic to push output data
-     * @param zkhosts zookeeper host to use kafka
-     * @param bootstrap broker list to use kafka
+     * @param inputTopic   topic to pull input data
+     * @param outputTopic  topic to push output data
+     * @param zkhosts      zookeeper host to use kafka
+     * @param bootstrap    broker list to use kafka
      */
     public void mainTopology(String topologyName, String inputTopic, String outputTopic, String zkhosts, String bootstrap) {
         KafkaSpout kafkaSpout = new KafkaSpout(kafkaSpoutConfig(zkhosts, inputTopic));
@@ -105,9 +106,9 @@ public class MainTopology {
                 .withTopicSelector(new DefaultTopicSelector(outputTopic))
                 .withTupleToKafkaMapper(new FieldNameBasedTupleToKafkaMapper());
         InferTestBolt inferTestBolt = null;
-        if(modelName.equals("mnist")) {
+        if (modelName.equals("mnist")) {
             inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/mnist/1", "input:0", "output/Softmax:0");
-        } else if(modelName.equals("cifar10")) {
+        } else if (modelName.equals("cifar10")) {
             inferTestBolt = new InferTestBolt("/home/team1/hyojong/models/cifar10/1", "conv2d_1_input:0", "activation_6/Softmax:0");
         }
 
